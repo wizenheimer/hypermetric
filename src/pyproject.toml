@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "cyyrus"
+version = "0.0.1"
+description = ""
+authors = ["wizenheimer <nayan.kumar@couchbase.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.2"
+datasets = "^2.20.0"
+ray = "2.24.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
+ruff = "^0.4.9"
+black = "^24.4.2"
+jupyterlab = "^4.2.2"
+jupyter = "^1.0.0"
+coverage = "^7.5.3"
+pytest = "^8.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
