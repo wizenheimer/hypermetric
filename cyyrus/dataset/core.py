@@ -24,13 +24,15 @@ class Dataset:
     @classmethod
     def from_dataset(
         cls,
-        dataset: Union[
-            DatasetDict,
-            HFDataset,
-            IterableDatasetDict,
-            IterableDataset,
-            Dict[str, IterableDataset],
-        ],
+        dataset: Optional[
+            Union[
+                DatasetDict,
+                HFDataset,
+                IterableDatasetDict,
+                IterableDataset,
+                Dict[str, IterableDataset],
+            ]
+        ] = HFDataset.from_list([]),
     ):
         """
         Create a Dataset instance from a given dataset object.
