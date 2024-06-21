@@ -1,4 +1,5 @@
 import functools
+import inspect
 import time
 from typing import Callable, Iterable
 from ray.util.multiprocessing import Pool as StatelessPool
@@ -39,7 +40,6 @@ class ExecutionPool:
         self,
         func: Callable,
         iterator: Iterable,
-        chunk_size: int = 1,
         max_attempts: int = 3,
         delay_seconds: int = 0,
         exception_to_retry: Exception = Exception,
@@ -58,10 +58,6 @@ class ExecutionPool:
         tuple, dictionary, or any other object that supports iteration. When the function is called, it
         will
         :type iterator: Iterable
-        :param chunk_size: The `chunk_size` parameter in the `submit` function specifies the number of
-        elements to process in each iteration from the `iterator`. It controls how many items are
-        processed concurrently or in a single batch, defaults to 1
-        :type chunk_size: int (optional)
         :param max_attempts: The `max_attempts` parameter specifies the maximum number of attempts to
         execute the function `func` on each chunk of the iterator `iterator`. If an attempt fails due to
         the specified `exception_to_retry`, the function will be retried up to `max_attempts` times
@@ -115,16 +111,43 @@ class ExecutionPool:
 
             return decorator
 
+        def adapter(func):
+            """
+            The `adapter` function is a decorator that adapts a given function to accept any number of
+            arguments and keyword arguments.
+
+            :param func: The `func` parameter in the `adapter` function is a function that will be
+            wrapped by the `wrapper` function returned by the `adapter` function
+            :return: A wrapper function is being returned.
+            """
+            sig = inspect.signature(func)
+            params = sig.parameters
+
+            if not params:
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    return func()
+
+            else:
+
+                @functools.wraps(func)
+                def wrapper(*args, **kwargs):
+                    return func(*args, **kwargs)
+
+            return wrapper
+
+        adapted_func = adapter(func=func)
+
         func_retry_enabled = retry(
             max_attempts=max_attempts,
             delay_seconds=delay_seconds,
             exception_to_retry=exception_to_retry,
-        )(func)
+        )(adapted_func)
 
         res = self.pool.starmap_async(
             func=func_retry_enabled,
             iterable=iterator,
-            chunk_size=chunk_size,
             callback=success_callback,
             error_callback=error_callback,
         )

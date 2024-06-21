@@ -96,7 +96,7 @@ class Executor:
                 positions.append((index, "fixed"))
 
         if len(iterators) == 0:
-            while max_runs > 0:
+            while max_runs >= 0:
                 max_runs -= 1
                 yield tuple(fixed_values)
 
@@ -108,7 +108,7 @@ class Executor:
             iter_iter = iter(elements)
             fixed_iter = iter(fixed_values)
 
-            if max_runs == 0:
+            if max_runs < 0:
                 return
 
             for index, type_ in positions:
@@ -131,14 +131,13 @@ class Executor:
         raise NotImplementedError(
             "Direct call to this function is not allowed. "
             "Please use the 'execute' method with appropriate parameters. "
-            "Example: instance.execute(workers=4, max_runs=10, chunk_size=1)"
+            "Example: instance.execute(workers=4, max_runs=10)"
         )
 
     def execute(
         self,
         workers: int = 1,
-        max_runs: int = None,
-        chunk_size: int = 1,
+        max_runs: float = math.inf,
         max_attempts: int = 3,
         delay_seconds: int = 0,
         exception_to_retry: Exception = Exception,
@@ -158,10 +157,6 @@ class Executor:
         function will only run that number of times before stopping. If it is set to `None`, the
         function will run indefinitely
         :type max_runs: int
-        :param chunk_size: The `chunk_size` parameter in the `execute` function determines the number of
-        tasks that will be sent to each worker process at a time. It controls how the iterable of
-        arguments is divided into chunks before being processed by the worker pool, defaults to 1
-        :type chunk_size: int (optional)
         :param max_attempts: The `max_attempts` parameter in the `execute` function specifies the
         maximum number of attempts to retry executing the function in case of a specified exception. If
         the function raises the specified exception, it will be retried up to `max_attempts` times
@@ -198,8 +193,7 @@ class Executor:
 
         res = self.pool.submit(
             func=self.func,
-            interator=iterator,
-            chunk_size=chunk_size,
+            iterator=iterator,
             max_attempts=max_attempts,
             delay_seconds=delay_seconds,
             exception_to_retry=exception_to_retry,
