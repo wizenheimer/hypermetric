@@ -140,7 +140,7 @@ class Worker:
 
         :param record: A single data record to add to the buffer.
         """
-        self.records.append(record)
+        self.records.append(record.to_dict())
         if len(self.records) > self.row_limit:
             self._flush_records()
 

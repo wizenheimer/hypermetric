@@ -109,7 +109,9 @@ class Component:
         dictionary from the `context`.
         """
         return lambda context: (
-            context.get("input", {}).get(field, None) if field else context.get("input", None)
+            context.get("input", {}).get(field, "")
+            if field
+            else (context.get("input") if context.get("input", {}) else "")
         )
 
     @classmethod
@@ -133,5 +135,7 @@ class Component:
         returns the entire "output" dictionary from the `context`.
         """
         return lambda context: (
-            context.get("output", {}).get(field, None) if field else context.get("output", None)
+            context.get("output", {}).get(field, "")
+            if field
+            else (context.get("output") if context.get("output", {}) else "")
         )
