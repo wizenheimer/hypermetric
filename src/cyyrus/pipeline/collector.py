@@ -153,8 +153,8 @@ class Worker:
         if self.records:
             dataset_from_list = HFDataset.from_list(self.records)
             snapshot_uuid = uuid.uuid4().hex
-            snapshot_file = os.path.join(self.snapshot_dir, f"snapshot_{snapshot_uuid}.parquet")
-            dataset_from_list.to_parquet(snapshot_file)
+            snapshot_file = os.path.join(self.snapshot_dir, f"snapshot_{snapshot_uuid}.json")
+            dataset_from_list.to_json(snapshot_file)
             self.records = []
 
     def reset(
@@ -180,12 +180,10 @@ class Worker:
         snapshot_files = [
             os.path.join(self.snapshot_dir, f)
             for f in os.listdir(self.snapshot_dir)
-            if f.endswith(".parquet")
+            if f.endswith(".json")
         ]
         datasets = [
-            HFDataset.from_parquet(snapshot)
-            for snapshot in snapshot_files
-            if os.path.isfile(snapshot)
+            HFDataset.from_json(snapshot) for snapshot in snapshot_files if os.path.isfile(snapshot)
         ]
 
         if clean_dir:
