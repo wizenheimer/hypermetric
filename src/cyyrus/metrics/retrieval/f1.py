@@ -1,8 +1,11 @@
 from typing import List
 
+from typeguard import typechecked
+
 from cyyrus.metrics.base import Metric
 
 
+@typechecked
 class F1(Metric):
     def use(
         self,

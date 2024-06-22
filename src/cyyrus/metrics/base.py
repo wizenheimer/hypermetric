@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator
 
+from typeguard import typechecked
+
 from cyyrus.pipeline.records import Record
 
 
+@typechecked
 class Metric(ABC):
     def __init__(
         self,

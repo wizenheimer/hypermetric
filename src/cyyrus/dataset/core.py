@@ -1,3 +1,4 @@
+from typeguard import typechecked
 from cyyrus.constants.messages import Messages
 from typing import List, Optional, Union, Callable, Dict
 
@@ -16,6 +17,7 @@ from datasets import (
 from datasets.features import Features
 
 
+@typechecked
 class Dataset:
     def __init__(self):
         # Prevent direct instantiation of this class
@@ -56,7 +58,12 @@ class Dataset:
         return instance
 
     @classmethod
-    def from_json(cls, data_files=None, split: Optional[Split] = None, **kwargs):
+    def from_json(
+        cls,
+        data_files=None,
+        split: Optional[Split] = None,
+        **kwargs,
+    ):
         """
         Create a Dataset instance from JSON files.
         :param data_files: File paths or URLs to JSON files.
@@ -68,7 +75,12 @@ class Dataset:
         return cls.from_dataset(dataset)
 
     @classmethod
-    def from_csv(cls, data_files=None, split: Optional[Split] = None, **kwargs):
+    def from_csv(
+        cls,
+        data_files=None,
+        split: Optional[Split] = None,
+        **kwargs,
+    ):
         """
         Create a Dataset instance from CSV files.
         :param data_files: File paths or URLs to CSV files.
@@ -80,7 +92,12 @@ class Dataset:
         return cls.from_dataset(dataset)
 
     @classmethod
-    def from_parquet(cls, data_files=None, split: Optional[Split] = None, **kwargs):
+    def from_parquet(
+        cls,
+        data_files=None,
+        split: Optional[Split] = None,
+        **kwargs,
+    ):
         """
         Create a Dataset instance from Parquet files.
         :param data_files: File paths or URLs to Parquet files.
@@ -92,7 +109,12 @@ class Dataset:
         return cls.from_dataset(dataset)
 
     @classmethod
-    def from_arrow(cls, data_files=None, split: Optional[Split] = None, **kwargs):
+    def from_arrow(
+        cls,
+        data_files=None,
+        split: Optional[Split] = None,
+        **kwargs,
+    ):
         """
         Create a Dataset instance from Arrow files.
         :param data_files: File paths or URLs to Apache Arrow files.

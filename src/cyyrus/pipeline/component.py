@@ -2,10 +2,13 @@ from functools import wraps
 from inspect import signature
 from typing import Callable, List, Optional
 
+from typeguard import typechecked
+
 from cyyrus.metrics.base import Metric
 from cyyrus.pipeline.core import Pipeline
 
 
+@typechecked
 class Component:
 
     def __init__(

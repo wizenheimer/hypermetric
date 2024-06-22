@@ -4,13 +4,17 @@ import time
 from typing import Callable, Iterable
 from ray.util.multiprocessing import Pool as StatelessPool
 from ray.util.multiprocessing.pool import AsyncResult
+from typeguard import typechecked
+
+from cyyrus.constants.messages import Messages
 
 
+@typechecked
 class ExecutionPool:
 
     def __init__(self):
         # Prevent direct instantiation of this class
-        raise RuntimeError()
+        raise RuntimeError(Messages.execution_pool_initialization_failed("create"))
 
     @classmethod
     def create(
@@ -104,7 +108,7 @@ class ExecutionPool:
                         except exception_to_retry:
                             time.sleep(delay_seconds)
                             attempts += 1
-                    raise ValueError("Maximum retries exceeded")
+                    raise ValueError(Messages.max_retries_exceed())
 
                 return wrapped
 

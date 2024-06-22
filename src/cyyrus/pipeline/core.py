@@ -1,11 +1,14 @@
 from typing import Optional
 from datetime import datetime
 
+from typeguard import typechecked
+
 from cyyrus.metrics.base import Metric
 from cyyrus.pipeline.collector import Collector
 from cyyrus.pipeline.records import Record
 
 
+@typechecked
 class Pipeline:
     def __init__(
         self,

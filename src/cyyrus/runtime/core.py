@@ -2,12 +2,15 @@ import inspect
 import math
 
 from collections.abc import Iterable
-from typing import Callable
+from typing import Callable, Union
+from typeguard import typechecked
 
 from cyyrus.runtime.pool import ExecutionPool
 
 
+@typechecked
 class Executor:
+
     def __init__(
         self,
         func: Callable,
@@ -112,7 +115,7 @@ class Executor:
 
     def _yield_args(
         self,
-        max_runs: float = math.inf,
+        max_runs: Union[int, float] = math.inf,
     ):
         """
         The function `_yield_args` generates combinations of fixed values and iterators up to a
@@ -194,9 +197,10 @@ class Executor:
         return self.pool.retrieve(res)
 
 
+@typechecked
 def runtime(
     workers: int = 1,
-    max_runs: float = math.inf,
+    max_runs: Union[int, float] = math.inf,
     max_retries: int = 3,
     delay_seconds: int = 0,
     exception_to_retry=Exception,  # type: ignore

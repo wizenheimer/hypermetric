@@ -1,14 +1,18 @@
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
 from typing import Any, Dict, List
+from typeguard import typechecked
+
+from cyyrus.constants.messages import Messages
 
 
+@typechecked
 @dataclass
 class Record:
     Component: str = "undefined"
     Metric: str = "undefined"
     Result: Any = "undefined"
-    Inputs: Dict[str, Any] = field(default_factory=dict)
+    Inputs: Dict[Any, Any] = field(default_factory=dict)
     Timestamp: datetime = field(default_factory=datetime.now)
 
     def __post_init__(
@@ -19,11 +23,29 @@ class Record:
         `Inputs` of an object.
         """
         if not isinstance(self.Component, str):
-            raise TypeError(f"Component must be a string, got {type(self.Component).__name__}")
+            raise TypeError(
+                Messages.type_mismatch(
+                    expected_type=str,
+                    received_type=type(self.Component),
+                    field_name="Component",
+                )
+            )
         if not isinstance(self.Metric, str):
-            raise TypeError(f"Metric must be a string, got {type(self.Metric).__name__}")
+            raise TypeError(
+                Messages.type_mismatch(
+                    expected_type=str,
+                    received_type=type(self.Metric),
+                    field_name="Metric",
+                )
+            )
         if not isinstance(self.Inputs, dict):
-            raise TypeError(f"Input must be a dictionary, got {type(self.Inputs).__name__}")
+            raise TypeError(
+                Messages.type_mismatch(
+                    expected_type=dict,
+                    received_type=type(self.Inputs),
+                    field_name="Inputs",
+                )
+            )
 
     def to_dict(
         self,
@@ -124,6 +146,7 @@ class Record:
         )
 
 
+@typechecked
 @dataclass
 class SubRecord:
     retrieved_context: List = field(default_factory=list)

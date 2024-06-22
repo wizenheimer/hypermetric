@@ -5,10 +5,12 @@ import shutil
 import ray
 from datasets import Dataset as HFDataset, concatenate_datasets
 from ray.util.actor_pool import ActorPool
+from typeguard import typechecked
 
 from cyyrus.pipeline.records import Record
 
 
+@typechecked
 class Collector:
     def __init__(
         self,

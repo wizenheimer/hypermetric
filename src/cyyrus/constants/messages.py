@@ -32,6 +32,13 @@ class Messages:  # TODO: link up the support channels
         )
 
     @staticmethod
+    def execution_pool_initialization_failed(method_name):
+        return (
+            f"Direct instantiation is not allowed. Please use the class method '{method_name}' "
+            "to create an instance."
+        )
+
+    @staticmethod
     def attribute_error(attribute_name, available_attributes):
         """
         This function checks if a given attribute is available in a list of available attributes and
@@ -125,3 +132,15 @@ class Messages:  # TODO: link up the support channels
             f"An unexpected error occurred: {error}. Please reach us out at {support_url} "
             "for more information."
         )
+
+    @staticmethod
+    def max_retries_exceed():
+        return "Runtime has exceeded the maximum retry attempt for the function."
+
+    @staticmethod
+    def type_mismatch(
+        expected_type,
+        received_type,
+        field_name="",
+    ):
+        return f"Expected a value of type '{expected_type}', but received type '{received_type}'. Please check the input value for the field {field_name}."
