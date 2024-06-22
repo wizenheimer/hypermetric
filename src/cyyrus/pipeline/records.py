@@ -1,4 +1,4 @@
-from dataclasses import asdict, astuple, dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
 from typing import Any, Dict
 
@@ -22,25 +22,50 @@ class Record:
             raise TypeError(f"Metric must be a string, got {type(self.Metric).__name__}")
         if not isinstance(self.Inputs, dict):
             raise TypeError(f"Input must be a dictionary, got {type(self.Inputs).__name__}")
-        for key, value in self.Inputs.items():
-            if not isinstance(value, list):
-                raise TypeError(f"Value for key '{key}' must be a list, got {type(value).__name__}")
 
-    def to_dict(self):
+    def to_dict(
+        self,
+    ):
         """
         The `to_dict` function returns a dictionary representation of an object using the `asdict`
         function.
         :return: The `to_dict` method is returning a dictionary representation of the record using the
         `asdict` function.
         """
-        return asdict(self)
 
-    def to_tuple(self):
-        """
-        The function `to_tuple` converts an object to a tuple using the `astuple` function.
-        :return: A tuple representation of the record is being returned.
-        """
-        return astuple(self)
+        def serialize_value(value):
+            """
+            Recursively serialize dataclass fields to JSON-compatible formats.
+            Args:
+                value (any): The value to serialize.
+            Returns:
+                any: The serialized value, or 'unserializable' if serialization fails.
+            """
+            if isinstance(value, (int, float, str, bool, type(None))):
+                return value
+
+            if isinstance(value, (list, tuple)):
+                return [serialize_value(item) for item in value]
+
+            if isinstance(value, dict):
+                return {key: serialize_value(val) for key, val in value.items()}
+
+            if isinstance(value, datetime):
+                return value.isoformat()
+
+            if is_dataclass(value):
+                return {
+                    field.name: serialize_value(getattr(value, field.name))
+                    for field in value.__dataclass_fields__.values()
+                }
+
+            try:
+                return str(value)
+            except Exception as e:
+                print(f"Error serializing {value}: {e}")
+                return "unserializable"
+
+        return serialize_value(asdict(self))
 
     def __repr__(self):
         """
