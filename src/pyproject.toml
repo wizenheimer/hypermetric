@@ -11,6 +11,7 @@ python = "^3.11"
 pandas = "^2.2.2"
 datasets = "^2.20.0"
 ray = "2.24.0"
+pydantic = "^2.7.4"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"

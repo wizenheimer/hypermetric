@@ -19,7 +19,7 @@ class Precision(Metric):
     def evaluate(
         self,
     ):
-        context = self.get_param("retrieved_context")
-        ground_truth = self.get_param("ground_truth_context")
+        _ = self.get_param("retrieved_context")
+        _ = self.get_param("ground_truth_context")
 
-        return self.export_metric(result=context + ground_truth)
+        return self.export_metric(result="ok")
