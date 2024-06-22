@@ -197,7 +197,7 @@ class Executor:
 def runtime(
     workers: int = 1,
     max_runs: float = math.inf,
-    max_attempts: int = 3,
+    max_retries: int = 3,
     delay_seconds: int = 0,
     exception_to_retry=Exception,  # type: ignore
     error_callback: Callable = lambda *args, **kwargs: None,
@@ -214,7 +214,7 @@ def runtime(
             func=func,
             workers=workers,
             max_runs=max_runs,
-            max_attempts=max_attempts,
+            max_attempts=max_retries,
             delay_seconds=delay_seconds,
             exception_to_retry=exception_to_retry,
             error_callback=error_callback,
