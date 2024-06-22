@@ -30,10 +30,9 @@ class ExecutionPool:
         :return: An instance of the class with the specified number of workers and an associated pool
         and results list is being returned.
         """
-        pool = StatelessPool(processes=workers)
         instance = cls.__new__(cls)
-        instance.pool = pool
-        instance.results = []
+        instance.pool = StatelessPool(processes=workers)  # type: ignore
+        instance.results = []  # type: ignore
         return instance
 
     def submit(
@@ -42,7 +41,7 @@ class ExecutionPool:
         iterator: Iterable,
         max_attempts: int = 3,
         delay_seconds: int = 0,
-        exception_to_retry: Exception = Exception,
+        exception_to_retry=Exception,
         error_callback: Callable = lambda *args, **kwargs: None,
         success_callback: Callable = lambda *args, **kwargs: None,
     ):
@@ -126,7 +125,7 @@ class ExecutionPool:
             if not params:
 
                 @functools.wraps(func)
-                def wrapper(*args, **kwargs):
+                def wrapper(*args, **kwargs):  # type: ignore
                     return func()
 
             else:
@@ -145,7 +144,7 @@ class ExecutionPool:
             exception_to_retry=exception_to_retry,
         )(adapted_func)
 
-        res = self.pool.starmap_async(
+        res = self.pool.starmap_async(  # type: ignore
             func=func_retry_enabled,
             iterable=iterator,
             callback=success_callback,

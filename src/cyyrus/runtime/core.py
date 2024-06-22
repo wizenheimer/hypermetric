@@ -15,7 +15,7 @@ class Executor:
         max_runs: float = math.inf,
         max_attempts: int = 3,
         delay_seconds: int = 0,
-        exception_to_retry: Exception = Exception,
+        exception_to_retry=Exception,  # type: ignore
         error_callback: Callable = lambda *args, **kwargs: None,
         success_callback: Callable = lambda *args, **kwargs: None,
     ):
@@ -195,8 +195,13 @@ class Executor:
 
 
 def runtime(
-    *func_args,
-    **func_kwargs,
+    workers: int = 1,
+    max_runs: float = math.inf,
+    max_attempts: int = 3,
+    delay_seconds: int = 0,
+    exception_to_retry=Exception,  # type: ignore
+    error_callback: Callable = lambda *args, **kwargs: None,
+    success_callback: Callable = lambda *args, **kwargs: None,
 ):
     """
     The `executor` function is a decorator factory that takes arguments and keyword arguments to create
@@ -205,6 +210,15 @@ def runtime(
     """
 
     def decorator(func: Callable):
-        return Executor(func, *func_args, **func_kwargs)
+        return Executor(
+            func=func,
+            workers=workers,
+            max_runs=max_runs,
+            max_attempts=max_attempts,
+            delay_seconds=delay_seconds,
+            exception_to_retry=exception_to_retry,
+            error_callback=error_callback,
+            success_callback=success_callback,
+        )
 
     return decorator
