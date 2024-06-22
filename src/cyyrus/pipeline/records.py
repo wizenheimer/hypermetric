@@ -1,17 +1,19 @@
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 @dataclass
 class Record:
-    Component: str
-    Metric: str
-    Result: Any
+    Component: str = "undefined"
+    Metric: str = "undefined"
+    Result: Any = "undefined"
     Inputs: Dict[str, Any] = field(default_factory=dict)
     Timestamp: datetime = field(default_factory=datetime.now)
 
-    def __post_init__(self):
+    def __post_init__(
+        self,
+    ):
         """
         The function `__post_init__` performs type checking on attributes `Component`, `Metric`, and
         `Inputs` of an object.
@@ -32,11 +34,6 @@ class Record:
         :return: The `to_dict` method is returning a dictionary representation of the record using the
         `asdict` function.
         """
-
-        sparse_dict = {
-            "retrieved_context": list(),
-            "ground_truth_context": list(),
-        }
 
         def serialize_value(
             value,
@@ -73,7 +70,7 @@ class Record:
                 return "unserializable"
 
         def flatten_and_sparsify(
-            original_dict,
+            dense_dict,
             target_key="Inputs",
         ):
             """
@@ -95,24 +92,27 @@ class Record:
             `original_dict`.
             """
 
-            flattened_dict = dict(original_dict)
+            flattened_dict = dict(dense_dict)
+            sparse_dict = asdict(SubRecord())
 
-            if target_key in original_dict and isinstance(original_dict[target_key], dict):
+            if target_key in dense_dict and isinstance(dense_dict[target_key], dict):
                 nested_dict = flattened_dict.pop(target_key)
 
                 for key in nested_dict:
                     if key in sparse_dict:
-                        sparse_dict[f"Input_{str(key).capitalize()}"] = nested_dict[key]
+                        sparse_dict[key] = nested_dict[key]
 
                 for key in sparse_dict:
-                    flattened_dict[key] = sparse_dict[key]
+                    flattened_dict[f"Input_{str(key).capitalize()}"] = sparse_dict[key]
 
             return flattened_dict
 
         dense_dict = serialize_value(asdict(self))
-        return flatten_and_sparsify(original_dict=dense_dict)
+        return flatten_and_sparsify(dense_dict=dense_dict)
 
-    def __repr__(self):
+    def __repr__(
+        self,
+    ):
         """
         The function `__repr__` returns a string representation of a Record object with its attributes.
         :return: The `__repr__` method is returning a formatted string that includes the values of the
@@ -122,3 +122,9 @@ class Record:
             f"Record(Component={self.Component}, Metric={self.Metric}, Result={self.Result}, "
             f"Input={self.Inputs}, Timestamp={self.Timestamp})"
         )
+
+
+@dataclass
+class SubRecord:
+    retrieved_context: List = field(default_factory=list)
+    ground_truth_context: List = field(default_factory=list)
