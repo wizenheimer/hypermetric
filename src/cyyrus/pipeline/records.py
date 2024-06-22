@@ -33,7 +33,14 @@ class Record:
         `asdict` function.
         """
 
-        def serialize_value(value):
+        sparse_dict = {
+            "retrieved_context": list(),
+            "ground_truth_context": list(),
+        }
+
+        def serialize_value(
+            value,
+        ):
             """
             Recursively serialize dataclass fields to JSON-compatible formats.
             Args:
@@ -65,7 +72,45 @@ class Record:
                 print(f"Error serializing {value}: {e}")
                 return "unserializable"
 
-        return serialize_value(asdict(self))
+        def flatten_and_sparsify(
+            original_dict,
+            target_key="Inputs",
+        ):
+            """
+            The function `flatten_and_sparsify` takes a dictionary, flattens it, and sparsifies a
+            specific nested key before returning the modified dictionary.
+
+            :param original_dict: The `original_dict` parameter in the `flatten_and_sparsify` function
+            is a dictionary that contains key-value pairs. The function aims to flatten the dictionary
+            structure and sparsify it by moving nested dictionary values to the top level with modified
+            keys
+            :param target_key: The `target_key` parameter in the `flatten_and_sparsify` function is used
+            to specify the key in the original dictionary that contains the nested dictionary to be
+            flattened and sparsified. By default, the `target_key` is set to "Inputs", but you can
+            provide a different key, defaults to Inputs (optional)
+            :return: The code snippet provided defines a function `flatten_and_sparsify` that takes an
+            original dictionary as input, flattens it, and sparsifies it by moving nested dictionary
+            values to the top level with modified keys. The function then calls `serialize_value` on an
+            object `self` and passes the resulting dictionary to `flatten_and_sparsify` as
+            `original_dict`.
+            """
+
+            flattened_dict = dict(original_dict)
+
+            if target_key in original_dict and isinstance(original_dict[target_key], dict):
+                nested_dict = flattened_dict.pop(target_key)
+
+                for key in nested_dict:
+                    if key in sparse_dict:
+                        sparse_dict[f"Input_{str(key).capitalize()}"] = nested_dict[key]
+
+                for key in sparse_dict:
+                    flattened_dict[key] = sparse_dict[key]
+
+            return flattened_dict
+
+        dense_dict = serialize_value(asdict(self))
+        return flatten_and_sparsify(original_dict=dense_dict)
 
     def __repr__(self):
         """
