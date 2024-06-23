@@ -10,7 +10,7 @@ readme = "README.md"
 python = "^3.11"
 pandas = "^2.2.2"
 datasets = "^2.20.0"
-ray = "2.24.0"
+ray = {extras = ["default"], version = "^2.30.0"}
 pydantic = "^2.7.4"
 typeguard = "^4.3.0"
 
