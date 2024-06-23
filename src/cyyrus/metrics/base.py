@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Generator, Optional
 
 from typeguard import typechecked
 
@@ -29,15 +29,15 @@ class Metric(ABC):
 
     def resolve(
         self,
-        component_name: str,
         context: Dict,
+        component_name: Optional[str] = None,
     ) -> "Metric":
         """
         Resolve parameters based on the provided context.
         :args: The context to use for resolving the parameters.
         :return: The instance of the Metric with resolved parameters.
         """
-        self.component_name = component_name
+        self.component_name = component_name if component_name else "undefined"
 
         resolved_params = {}
         for key, value in self.params.items():
