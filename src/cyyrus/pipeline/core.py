@@ -69,8 +69,6 @@ class Pipeline:
 
     def save(
         self,
-        format_type: str = "dataset",
-        path: Optional[str] = None,
         reuse_pool: bool = True,
         clean_dir: bool = True,
     ):
@@ -105,17 +103,4 @@ class Pipeline:
             clean_dir=clean_dir,
         )
 
-        if path is None:
-            now = datetime.now().strftime("%Y%m%d_%H%M%S")
-            path = f"{self.name}_{now}"
-
-        if format_type == "dataset":
-            return results
-        elif format_type == "csv":
-            return results.to_csv(path)
-        elif format_type == "dataframe":
-            return results.to_pandas()
-        elif format_type == "dict":
-            return results.to_dict()
-        else:
-            return results
+        return results

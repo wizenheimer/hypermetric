@@ -1,6 +1,8 @@
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime
 from typing import Any, Dict, List
+import uuid
+
 from typeguard import typechecked
 
 from cyyrus.constants.messages import Messages
@@ -9,6 +11,7 @@ from cyyrus.constants.messages import Messages
 @typechecked
 @dataclass
 class Record:
+    ID: str = uuid.uuid4().hex
     Component: str = "undefined"
     Metric: str = "undefined"
     Result: Any = "undefined"

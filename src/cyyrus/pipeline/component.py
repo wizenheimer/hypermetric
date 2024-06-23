@@ -81,12 +81,10 @@ class Component:
             }
 
             # Evaluate the metrics
-            [
+            for metric in self.evals:
                 self.pipeline.evaluate_and_export(
                     metric=metric.resolve(component_name=self.name, context=context)
                 )
-                for metric in self.evals or []
-            ]
 
             return result
 

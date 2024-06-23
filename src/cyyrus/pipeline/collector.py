@@ -5,6 +5,7 @@ import shutil
 import ray
 from datasets import Dataset as HFDataset, concatenate_datasets
 from ray.util.actor_pool import ActorPool
+
 from typeguard import typechecked
 
 from cyyrus.pipeline.records import Record
@@ -56,27 +57,6 @@ class Collector:
         while self.pool.has_next():
             self.pool.get_next_unordered()
 
-    def reset(
-        self,
-        reuse=True,
-    ):
-        """
-        Resets the actor pool by first draining it and then either cleaning up or reinitializing idle actors.
-
-        :param reuse: Boolean flag indicating whether to reinitialize idle actors (True) or permanently close them (False).
-        """
-        self.drain()
-
-        idle_actors = []
-        while self.pool.has_free():
-            idle_actor = self.pool.pop_idle()
-            ray.get(idle_actor.reset.remote())  # type: ignore
-            if reuse:
-                idle_actors.append(idle_actor)
-
-        for actor in idle_actors:
-            self.pool.push(actor)
-
     def dump(
         self,
         reuse=True,
@@ -95,10 +75,11 @@ class Collector:
         while self.pool.has_free():
             idle_actor = self.pool.pop_idle()
 
-            ray.get(idle_actor.reset.remote())  # type: ignore
+            ray.get(idle_actor.flush.remote())  # type: ignore
 
             dataset = ray.get(idle_actor.compaction.remote(clean_dir=clean_dir))  # type: ignore
-            datasets.append(dataset)
+            if dataset:
+                datasets.append(dataset)
 
             if reuse:
                 idle_actors.append(idle_actor)
@@ -144,7 +125,7 @@ class Worker:
         """
         self.records.append(record.to_dict())
         if len(self.records) > self.row_limit:
-            self._flush_records()
+            self.flush()
 
     def _flush_records(
         self,
@@ -159,7 +140,7 @@ class Worker:
             dataset_from_list.to_parquet(snapshot_file)
             self.records = []
 
-    def reset(
+    def flush(
         self,
     ):
         """
