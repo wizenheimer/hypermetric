@@ -1,7 +1,7 @@
 import inspect
 import math
 
-from typing import Callable, Generator, Union
+from typing import Any, Callable, Generator, List, Union
 
 from typeguard import typechecked
 
@@ -74,11 +74,9 @@ class Executor:
         self.exception_to_retry = exception_to_retry
         self.error_callback = error_callback
         self.success_callback = success_callback
-        self.completed_runs = 0
 
-    def _flatten_args(
+    def convert_to_positional_args(
         self,
-        func: Callable,
         *func_args,
         **func_kwargs,
     ):
@@ -95,7 +93,7 @@ class Executor:
         function.
         """
         # Create signature based on the function to be decorated
-        sig = inspect.signature(func)
+        sig = inspect.signature(self.func)
         param_names = list(sig.parameters.keys())
 
         # Filter out kwargs that are not in the function signature
@@ -114,8 +112,9 @@ class Executor:
         # Convert bound_args to purely positional arguments
         return [bound_args.arguments[param] for param in param_names]
 
-    def _yield_args(
+    def generate_arguments(
         self,
+        args: List[Any],
         max_runs: Union[int, float] = math.inf,
     ):
         """
@@ -135,7 +134,6 @@ class Executor:
         positions = []
         iterators = []
         fixed_values = []
-        args = self.args
 
         for index, arg in enumerate(args):
             if isinstance(arg, Generator):
@@ -182,8 +180,14 @@ class Executor:
         method of the pool object.
         """
 
-        self.args = self._flatten_args(self.func, *func_args, **func_kwargs)
-        iterator = self._yield_args(max_runs=self.max_runs)
+        positional_args = self.convert_to_positional_args(
+            *func_args,
+            **func_kwargs,
+        )
+        iterator = self.generate_arguments(
+            args=positional_args,
+            max_runs=self.max_runs,
+        )
 
         res = self.pool.submit(
             func=self.func,
