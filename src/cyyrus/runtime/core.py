@@ -1,8 +1,8 @@
 import inspect
 import math
 
-from collections.abc import Iterable
-from typing import Callable, Union
+from typing import Callable, Generator, Union
+
 from typeguard import typechecked
 
 from cyyrus.runtime.pool import ExecutionPool
@@ -74,6 +74,7 @@ class Executor:
         self.exception_to_retry = exception_to_retry
         self.error_callback = error_callback
         self.success_callback = success_callback
+        self.completed_runs = 0
 
     def _flatten_args(
         self,
@@ -137,7 +138,7 @@ class Executor:
         args = self.args
 
         for index, arg in enumerate(args):
-            if isinstance(arg, Iterable) and not isinstance(arg, (str, bytes, list)):
+            if isinstance(arg, Generator):
                 iterators.append(arg)
                 positions.append((index, "iter"))
             else:
