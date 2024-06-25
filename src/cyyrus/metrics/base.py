@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict
 
 from typeguard import typechecked
 
@@ -15,6 +15,7 @@ class Metric(ABC):
         Initialize the Metric with an empty parameters dictionary.
         """
         self.params: Dict[str, Any] = {}
+        self.component_name: str = "undefined"
 
     def use(
         self,
@@ -25,44 +26,6 @@ class Metric(ABC):
         :return: The instance of the Metric with updated parameters.
         """
         self.params.update(kwargs)
-        return self
-
-    def resolve(
-        self,
-        context: Dict,
-        component_name: Optional[str] = None,
-    ) -> "Metric":
-        """
-        Resolve parameters based on the provided context.
-        :args: The context to use for resolving the parameters.
-        :return: The instance of the Metric with resolved parameters.
-        """
-        self.component_name = component_name if component_name else "undefined"
-
-        resolved_params = {}
-        for key, value in self.params.items():
-            try:
-                # Check if the value is a callable and call it with context
-                if callable(value):
-                    resolved_value = value(context)
-                    # Check if the value is a generator and pull one value from it
-                elif isinstance(value, Generator):
-                    try:
-                        resolved_value = next(value)
-                    except StopIteration:
-                        resolved_value = None
-                        # Handle case where the generator is empty
-                else:
-                    resolved_value = value
-                    # Use the value as is if it's not callable or a generator
-            except Exception:
-                resolved_value = None
-
-            # Store the resolved value in the parameters dictionary
-            resolved_params[key] = resolved_value
-
-        # Override existing params
-        self.params = resolved_params
         return self
 
     def get_param(
@@ -87,16 +50,21 @@ class Metric(ABC):
     @abstractmethod
     def evaluate(
         self,
+        task_id: str,
     ) -> Record:
         """
         Abstract method to evaluate the metric. Must be implemented by subclasses.
         :returns: The record of the evaluation.
         """
-        pass  # should be implemented by all the child metrics
+        return self.serialize(
+            result="ok",
+            task_id=task_id,
+        )  # should be implemented by all the child metrics
 
-    def export_metric(
+    def serialize(
         self,
         result: Any,
+        task_id: str,
     ) -> Record:
         """
         The `record_builder` function creates a `Record` object with specified component name, metric
@@ -110,6 +78,7 @@ class Metric(ABC):
         Result, and Inputs.
         """
         return Record(
+            ID=task_id,
             Component=self.component_name,
             Metric=self.__class__.__name__,
             Result=result,
