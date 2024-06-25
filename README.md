@@ -1,5 +1,5 @@
-# Cyrus: Distributed Runtime for Evaluations Using Ray Core
-Cyrus utilizes Ray Core to build a robust distributed runtime for running evaluations.
+# HyperMetric: Distributed Runtime for Evaluations
+Hypermetric utilizes Ray Core to build a robust distributed runtime for running offline evaluations.
 
 ![image](https://github.com/wizenheimer/cyyrus/assets/91504165/295529fa-9d3a-4c79-8207-1fddd52f2598)
 
@@ -51,7 +51,7 @@ Our experimental build leverages Ray Core to create a distributed runtime specif
 - **Memory Management:** Maintaining state hygiene and preventing OOM errors ensures stable and reliable execution of evaluations.
 
 ## Open Issues 
-Cyyrus is still a work in progress but is sufficiently functional for demonstrations and waving it around in meetings. There are several areas we could improve to streamline its performance, hence the next iteration might be a complete overhaul. Our plan is to utilize external APIs unless a simpler solution for running evaluations is identified. 
+Hypermetric is still a work in progress but is sufficiently functional for demonstrations and waving it around in meetings. There are several areas we could improve to streamline its performance, hence the next iteration might be a complete overhaul. Our plan is to utilize external APIs unless a simpler solution for running evaluations is identified. 
 - **Backpressure**: We need to determine how to implement backpressure in the actor pool effectively.
 - **Non-Blocking Schedules**: The scheduler currently operates without blocking, which might require adjustments to introduce necessary blocking mechanisms.
 
