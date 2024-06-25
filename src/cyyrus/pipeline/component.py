@@ -2,10 +2,10 @@ from functools import wraps
 from inspect import signature
 from typing import Callable, List, Optional
 
+import ray
 from typeguard import typechecked
 
 from cyyrus.metrics.base import Metric
-from cyyrus.pipeline.core import Pipeline
 
 
 @typechecked
@@ -13,7 +13,7 @@ class Component:
 
     def __init__(
         self,
-        pipeline: Pipeline,
+        pipeline,
         name: Optional[str] = None,
         evals: Optional[List[Metric]] = None,
     ):
@@ -80,13 +80,15 @@ class Component:
                 "output": result,
             }
 
+            task_id = ray.get_runtime_context().get_task_id()
+
             # Evaluate the metrics
             for metric in self.evals:
-                self.pipeline.evaluate_and_export(
-                    metric=metric.resolve(
-                        component_name=self.name,
-                        context=context,
-                    )
+                self.pipeline.dispatch.remote(
+                    component_name=self.name,
+                    metric=metric,
+                    task_id=task_id,
+                    context=context,
                 )
 
             return result
@@ -142,4 +144,15 @@ class Component:
             context.get("output", {}).get(field, "")
             if field
             else (context.get("output") if context.get("output", {}) else "")
+        )
+
+    @classmethod
+    def dataset(  # todo: convert schema to a dataset wrapper
+        cls,
+        field: Optional[str] = None,
+    ):
+        return lambda context: (
+            context.get("dataset", {}).get(field, "")
+            if field
+            else (context.get("dataset") if context.get("dataset", {}) else "")
         )
