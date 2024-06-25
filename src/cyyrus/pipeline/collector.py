@@ -39,7 +39,7 @@ class Collector:
 
     def submit(
         self,
-        record: Record,
+        record,
     ):
         """
         Submits a record to a pool of composer workers.
@@ -112,7 +112,7 @@ class Worker:
         self.snapshot_dir = uuid.uuid4().hex
         os.makedirs(self.snapshot_dir, exist_ok=True)
         self.records = []
-        self.row_limit = max(row_limit, 100)
+        self.row_limit = max(row_limit, 1)  # ensure there's atleast 1 row to flush
 
     def add_record(
         self,
@@ -124,7 +124,7 @@ class Worker:
         :param record: A single data record to add to the buffer.
         """
         self.records.append(record.to_dict())
-        if len(self.records) > self.row_limit:
+        if len(self.records) >= self.row_limit:
             self.flush()
 
     def _flush_records(
