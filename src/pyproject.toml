@@ -7,13 +7,21 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-
+python = "^3.11"
+pandas = "^2.2.2"
+datasets = "^2.20.0"
+ray = {extras = ["default"], version = "^2.30.0"}
+pydantic = "^2.7.4"
+typeguard = "^4.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"
 ruff = "^0.4.9"
 black = "^24.4.2"
+jupyterlab = "^4.2.2"
+jupyter = "^1.0.0"
+coverage = "^7.5.3"
+pytest = "^8.2.2"
 
 [build-system]
 requires = ["poetry-core"]
