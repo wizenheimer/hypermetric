@@ -5,10 +5,9 @@ import shutil
 import ray
 from datasets import Dataset as HFDataset, concatenate_datasets
 from ray.util.actor_pool import ActorPool
+from cyyrus.metrics.base import Metric
 
 from typeguard import typechecked
-
-from cyyrus.pipeline.records import Record
 
 
 @typechecked
@@ -39,14 +38,14 @@ class Collector:
 
     def submit(
         self,
-        record,
+        metric: Metric,
     ):
         """
         Submits a record to a pool of composer workers.
 
         :param record: A single data record to add to the buffer.
         """
-        self.pool.submit(lambda actor, value: actor.add_record.remote(value), record)
+        self.pool.submit(lambda actor, value: actor.add_record.remote(value), metric)
 
     def drain(
         self,
@@ -116,13 +115,14 @@ class Worker:
 
     def add_record(
         self,
-        record: Record,
+        metric: Metric,
     ):
         """
         Adds a record to the internal buffer and triggers flush if the buffer size exceeds the row limit.
 
         :param record: A single data record to add to the buffer.
         """
+        record = metric.evaluate()
         self.records.append(record.to_dict())
         if len(self.records) >= self.row_limit:
             self.flush()

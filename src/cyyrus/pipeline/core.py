@@ -1,16 +1,18 @@
-from typing import Any, Dict, Optional
+import math
+import random
+import time
+from typing import Optional, Union
 from datetime import datetime
 from datasets import Dataset as HFDataset
 import ray
+from ray.util.state import list_tasks
 from typeguard import typechecked
 
 from cyyrus.metrics.base import Metric
 from cyyrus.pipeline.collector import Collector
 from cyyrus.pipeline.datastore import Resolver
-from cyyrus.pipeline.records import Record
 
 
-@ray.remote
 @typechecked
 class Pipeline:
     def __init__(
@@ -30,17 +32,9 @@ class Pipeline:
             dataset=dataset,
         )
 
-    def add_record(
+    def fetch_record(
         self,
-        record: Record,
-    ):
-        self.collector.submit(
-            record=record,
-        )
-
-    def fetch_record(  # perf: add caching
-        self,
-        task_id,  # warsaw: task dataset_key and task_id
+        task_id,
     ):
         record = self.resolver.resolve(
             task_id=task_id,
@@ -51,52 +45,66 @@ class Pipeline:
     def dispatch(
         self,
         metric: Metric,
-        task_id: str,
-        component_name: str,
-        context: Dict[str, Any],
     ):
-        context["dataset"] = self.fetch_record(
-            task_id=task_id,
-        )
-
-        resolved_params = {}
-        for key, value in metric.params.items():
-            try:
-                # Check if the value is a callable and call it with context
-                if callable(value):
-                    resolved_value = value(context)
-                else:
-                    resolved_value = value
-                    # Use the value as is if it's not callable or a generator
-            except Exception:
-                resolved_value = None
-
-            # Store the resolved value in the parameters dictionary
-            resolved_params[key] = resolved_value
-
-        metric.params = resolved_params
-        metric.component_name = component_name
-
-        record = metric.evaluate(
-            task_id=task_id,
-        )
-
-        # record_ref = ray.put(
-        #     record,
-        # )
-
         self.collector.submit(
-            record=record,
+            metric=metric,
         )
+
+    def _exponential_backoff(
+        self,
+        max_retries: Union[float, int] = 10,
+        max_timeout: Union[float, int] = 60,
+        max_pending_percent: Union[float, int] = 10,  # flush disk
+    ):
+        retry_delay = 1
+
+        start_time = time.time()
+        for _ in range(int(max_retries)):
+            count = 0
+            total_tasks = 0
+            for task in list_tasks():
+                if task.name == "Worker.add_record":  # type: ignore
+                    total_tasks += 1
+
+                    if task.state in [  # type: ignore
+                        "PENDING_ARGS_AVAIL",
+                        "PENDING_NODE_ASSIGNMENT",
+                        "PENDING_OBJ_STORE_MEM_AVAIL",
+                        "PENDING_ARGS_FETCH",
+                    ]:
+                        count += 1
+
+            if total_tasks == 0:
+                break  # No tasks to wait for
+
+            pending_percent = (count / total_tasks) * 100
+
+            if pending_percent <= max_pending_percent or (time.time() - start_time) >= max_timeout:
+                break
+
+            time.sleep(retry_delay)
+            retry_delay *= 2
+            retry_delay += random.uniform(0, 1)
 
     def save(
         self,
         reuse_pool: bool = True,
         clean_dir: bool = True,
+        max_retries: Union[float, int] = 10,
+        max_timeout: Union[float, int] = math.inf,
+        max_pending_percent: Union[float, int] = 10,
     ):
+        self._exponential_backoff(
+            max_retries=max_retries,
+            max_timeout=max_timeout,
+            max_pending_percent=max_pending_percent,
+        )
+
         results = self.collector.dump(
             reuse=reuse_pool,
             clean_dir=clean_dir,
         )
+
+        ray.shutdown()
 
         return results

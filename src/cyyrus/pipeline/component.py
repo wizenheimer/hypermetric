@@ -74,21 +74,41 @@ class Component:
             # Call the function
             result = func(*args, **kwargs)
 
+            task_id = ray.get_runtime_context().get_task_id()
+
+            dataset = self.pipeline.fetch_record(
+                task_id=task_id,
+            )
+
             # Store Context
             context = {
                 "input": all_arguments,  # kwargs,
                 "output": result,
+                "dataset": dataset,
             }
-
-            task_id = ray.get_runtime_context().get_task_id()
 
             # Evaluate the metrics
             for metric in self.evals:
-                self.pipeline.dispatch.remote(
-                    component_name=self.name,
+                resolved_params = {}
+                for key, value in metric.params.items():
+                    try:
+                        # Check if the value is a callable and call it with context
+                        if callable(value):
+                            resolved_value = value(context)
+                        else:
+                            resolved_value = value
+                            # Use the value as is if it's not callable or a generator
+                    except Exception:
+                        resolved_value = None
+
+                    # Store the resolved value in the parameters dictionary
+                    resolved_params[key] = resolved_value
+
+                metric.params = resolved_params
+                metric.component_name = self.name
+
+                self.pipeline.dispatch(
                     metric=metric,
-                    task_id=task_id,
-                    context=context,
                 )
 
             return result
@@ -144,15 +164,4 @@ class Component:
             context.get("output", {}).get(field, "")
             if field
             else (context.get("output") if context.get("output", {}) else "")
-        )
-
-    @classmethod
-    def dataset(  # todo: convert schema to a dataset wrapper
-        cls,
-        field: Optional[str] = None,
-    ):
-        return lambda context: (
-            context.get("dataset", {}).get(field, "")
-            if field
-            else (context.get("dataset") if context.get("dataset", {}) else "")
         )
