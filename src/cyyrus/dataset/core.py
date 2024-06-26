@@ -300,7 +300,15 @@ class Dataset:
                 Messages.value_error(expected_type=type(List), received_type=type(attrs))
             )
         for attr in attrs:
-            setattr(self, attr, (x for x in self._dataset[attr]))
+            setattr(
+                self,
+                attr,
+                lambda context: (
+                    context.get("dataset", {}).get(attr, "")
+                    if attr
+                    else (context.get("dataset") if context.get("dataset", {}) else "")
+                ),
+            )
 
     def _remove_attrs(
         self,
@@ -320,25 +328,9 @@ class Dataset:
             if hasattr(self, attr):
                 delattr(self, attr)
 
-    def renew_field(
-        self,
-        field: str,
-    ):
-        """
-        Resets the generator for a specified field in the dataset.
-        :param field: field name
-        :type field: string
-
-        Note:
-        - This operation will reset the generator to allow re-iteration over the dataset values for the specified field.
-        """
-        if field in self.fields and hasattr(self, field):
-            setattr(self, field, (x for x in self._dataset[field]))
-
     def get_field_value(
         self,
         field: str,
-        supress_iterstop: bool = True,
     ):
         """
         Retrieves the next value for a specified field from an internal dataset generator.
@@ -362,14 +354,7 @@ class Dataset:
                     available_attributes=self.fields,
                 )
             )
-        try:
-            field_generator = getattr(self, field)
-            return next(field_generator)
-        except StopIteration:
-            if supress_iterstop:
-                return None
-            else:
-                raise Exception(Messages.generator_exhausted())
+        return (x for x in self._dataset[field])
 
     @property
     def fields(self):

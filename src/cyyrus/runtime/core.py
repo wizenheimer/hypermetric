@@ -1,10 +1,8 @@
 import inspect
 import math
-
 from typing import Any, Callable, Generator, List, Union
 
 from typeguard import typechecked
-
 from cyyrus.runtime.pool import ExecutionPool
 
 
@@ -19,8 +17,6 @@ class Executor:
         max_attempts: int = 3,
         delay_seconds: int = 0,
         exception_to_retry=Exception,  # type: ignore
-        error_callback: Callable = lambda *args, **kwargs: None,
-        success_callback: Callable = lambda *args, **kwargs: None,
     ):
         """
         This function initializes an object with parameters for executing a given function with
@@ -72,8 +68,6 @@ class Executor:
         self.max_attempts = max_attempts
         self.delay_seconds = delay_seconds
         self.exception_to_retry = exception_to_retry
-        self.error_callback = error_callback
-        self.success_callback = success_callback
 
     def convert_to_positional_args(
         self,
@@ -195,11 +189,9 @@ class Executor:
             max_attempts=self.max_attempts,
             delay_seconds=self.delay_seconds,
             exception_to_retry=self.exception_to_retry,
-            error_callback=self.error_callback,
-            success_callback=self.success_callback,
         )
 
-        return self.pool.retrieve(res)
+        return res
 
 
 @typechecked
@@ -209,8 +201,6 @@ def runtime(
     max_retries: int = 3,
     delay_seconds: int = 0,
     exception_to_retry=Exception,  # type: ignore
-    error_callback: Callable = lambda *args, **kwargs: None,
-    success_callback: Callable = lambda *args, **kwargs: None,
 ):
     """
     The `executor` function is a decorator factory that takes arguments and keyword arguments to create
@@ -226,8 +216,6 @@ def runtime(
             max_attempts=max_retries,
             delay_seconds=delay_seconds,
             exception_to_retry=exception_to_retry,
-            error_callback=error_callback,
-            success_callback=success_callback,
         )
 
     return decorator

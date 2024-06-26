@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
+import uuid
 
 from typeguard import typechecked
 
@@ -50,7 +51,6 @@ class Metric(ABC):
     @abstractmethod
     def evaluate(
         self,
-        task_id: str,
     ) -> Record:
         """
         Abstract method to evaluate the metric. Must be implemented by subclasses.
@@ -58,13 +58,11 @@ class Metric(ABC):
         """
         return self.serialize(
             result="ok",
-            task_id=task_id,
         )  # should be implemented by all the child metrics
 
     def serialize(
         self,
         result: Any,
-        task_id: str,
     ) -> Record:
         """
         The `record_builder` function creates a `Record` object with specified component name, metric
@@ -78,7 +76,7 @@ class Metric(ABC):
         Result, and Inputs.
         """
         return Record(
-            ID=task_id,
+            ID=uuid.uuid4().hex,
             Component=self.component_name,
             Metric=self.__class__.__name__,
             Result=result,

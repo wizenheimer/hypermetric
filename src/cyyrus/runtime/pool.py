@@ -3,7 +3,6 @@ import inspect
 import time
 from typing import Callable, Iterable
 from ray.util.multiprocessing import Pool as StatelessPool
-from ray.util.multiprocessing.pool import AsyncResult
 from typeguard import typechecked
 
 from cyyrus.constants.messages import Messages
@@ -46,8 +45,6 @@ class ExecutionPool:
         max_attempts: int = 3,
         delay_seconds: int = 0,
         exception_to_retry=Exception,
-        error_callback: Callable = lambda *args, **kwargs: None,
-        success_callback: Callable = lambda *args, **kwargs: None,
     ):
         """
         This function submits tasks to be processed with customizable parameters such as chunk size,
@@ -148,26 +145,9 @@ class ExecutionPool:
             exception_to_retry=exception_to_retry,
         )(adapted_func)
 
-        res = self.pool.starmap_async(  # type: ignore
+        res = self.pool.starmap(  # type: ignore
             func=func_retry_enabled,
             iterable=iterator,
-            callback=success_callback,
-            error_callback=error_callback,
         )
 
         return res
-
-    def retrieve(
-        self,
-        res: AsyncResult,
-    ):
-        """
-        The `retrieve` function takes an `AsyncResult` object and returns the result of the asynchronous
-        operation it represents.
-
-        :param res: The `res` parameter in the `retrieve` function is an `AsyncResult` object
-        :type res: AsyncResult
-        :return: the result of the asynchronous operation represented by the `AsyncResult` object `res`
-        by calling the `get()` method on it.
-        """
-        return res.get()

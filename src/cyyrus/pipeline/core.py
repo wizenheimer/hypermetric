@@ -1,102 +1,112 @@
-from typing import Any, Dict, Optional
+import math
+import random
+import time
+from typing import Optional, Union
 from datetime import datetime
 from datasets import Dataset as HFDataset
 import ray
+from ray.util.state import list_tasks
 from typeguard import typechecked
 
 from cyyrus.metrics.base import Metric
-from cyyrus.pipeline.collector import Collector
-from cyyrus.pipeline.datastore import Resolver
-from cyyrus.pipeline.records import Record
+from cyyrus.pipeline.datastore import DataStore
+from cyyrus.pipeline.evaluator import Evaluator
 
 
-@ray.remote
 @typechecked
 class Pipeline:
     def __init__(
         self,
         dataset: Optional[HFDataset] = None,
         name: Optional[str] = None,
-        workers: int = 4,
         row_limit: int = 1000,
+        max_tasks: int = 100,
     ):
         self.name = name if name is not None else datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.collector = Collector(
-            pipeline_name=self.name,
-            pool_size=workers,
-            row_limit=row_limit,
+        self.evaluator = Evaluator.remote(row_limit=row_limit)  # type: ignore
+        self.datastore = DataStore.remote(
+            dataset=dataset,  # type: ignore
         )
-        self.resolver = Resolver(
-            dataset=dataset,
-        )
+        self.max_tasks = max_tasks
+        self.refs = []
 
-    def add_record(
+    def fetch_record(
         self,
-        record: Record,
+        task_id,
     ):
-        self.collector.submit(
-            record=record,
-        )
-
-    def fetch_record(  # perf: add caching
-        self,
-        task_id,  # warsaw: task dataset_key and task_id
-    ):
-        record = self.resolver.resolve(
-            task_id=task_id,
-        )
+        record = ray.get(self.datastore.resolve.remote(task_id))
 
         return record
 
     def dispatch(
         self,
         metric: Metric,
-        task_id: str,
-        component_name: str,
-        context: Dict[str, Any],
     ):
-        context["dataset"] = self.fetch_record(
-            task_id=task_id,
+        while len(self.refs) >= self.max_tasks:
+            _, self.refs = ray.wait(
+                self.refs,
+                num_returns=1,
+                timeout=None,
+            )
+
+        ref = self.evaluator.add_record.remote(
+            metric=metric,
         )
 
-        resolved_params = {}
-        for key, value in metric.params.items():
-            try:
-                # Check if the value is a callable and call it with context
-                if callable(value):
-                    resolved_value = value(context)
-                else:
-                    resolved_value = value
-                    # Use the value as is if it's not callable or a generator
-            except Exception:
-                resolved_value = None
+        self.refs.append(ref)
 
-            # Store the resolved value in the parameters dictionary
-            resolved_params[key] = resolved_value
+    def _exponential_backoff(
+        self,
+        max_retries: Union[float, int] = 10,
+        max_timeout: Union[float, int] = 60,
+        max_pending_percent: Union[float, int] = 10,  # flush disk
+    ):
+        retry_delay = 1
 
-        metric.params = resolved_params
-        metric.component_name = component_name
+        start_time = time.time()
+        for _ in range(int(max_retries)):
+            count = 0
+            total_tasks = 0
+            for task in list_tasks():
+                if task.name == "Worker.add_record":  # type: ignore
+                    total_tasks += 1
 
-        record = metric.evaluate(
-            task_id=task_id,
-        )
+                    if task.state in [  # type: ignore
+                        "PENDING_ARGS_AVAIL",
+                        "PENDING_NODE_ASSIGNMENT",
+                        "PENDING_OBJ_STORE_MEM_AVAIL",
+                        "PENDING_ARGS_FETCH",
+                    ]:
+                        count += 1
 
-        # record_ref = ray.put(
-        #     record,
-        # )
+            if total_tasks == 0:
+                break  # No tasks to wait for
 
-        self.collector.submit(
-            record=record,
-        )
+            pending_percent = (count / total_tasks) * 100
+
+            if pending_percent <= max_pending_percent or (time.time() - start_time) >= max_timeout:
+                break
+
+            time.sleep(retry_delay)
+            retry_delay *= 2
+            retry_delay += random.uniform(0, 1)
 
     def save(
         self,
         reuse_pool: bool = True,
         clean_dir: bool = True,
+        max_retries: Union[float, int] = 10,
+        max_timeout: Union[float, int] = math.inf,
+        max_pending_percent: Union[float, int] = 10,
     ):
-        results = self.collector.dump(
-            reuse=reuse_pool,
+        self._exponential_backoff(
+            max_retries=max_retries,
+            max_timeout=max_timeout,
+            max_pending_percent=max_pending_percent,
+        )
+
+        results = self.evaluator.compaction.remote(
             clean_dir=clean_dir,
         )
 
-        return results
+        return ray.get(results)
