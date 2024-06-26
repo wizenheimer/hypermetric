@@ -3,6 +3,7 @@ PYTHON = python3
 POETRY = poetry
 DIST_DIR = src/dist
 LOCK_FILE = src/poetry.lock
+VENV_DIR = src/.venv
 
 # Install dependencies and build the package using Poetry
 .PHONY: build
