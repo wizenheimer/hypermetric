@@ -31,7 +31,7 @@ class DataStore:
         self,
         task_id,
     ):
-        if task_id not in self.records.keys():
+        if task_id not in self.records.keys():  # reduce data movement with refs
             self.records[task_id] = self.dataset[self.count] if self.dataset else None  # type: ignore
             self.count += 1
 

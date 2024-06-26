@@ -9,8 +9,8 @@ from ray.util.state import list_tasks
 from typeguard import typechecked
 
 from cyyrus.metrics.base import Metric
-from cyyrus.pipeline.collector import Collector
-from cyyrus.pipeline.datastore import Resolver
+from cyyrus.pipeline.datastore import DataStore
+from cyyrus.pipeline.evaluator import Evaluator
 
 
 @typechecked
@@ -19,26 +19,22 @@ class Pipeline:
         self,
         dataset: Optional[HFDataset] = None,
         name: Optional[str] = None,
-        workers: int = 4,
         row_limit: int = 1000,
+        max_tasks: int = 100,
     ):
         self.name = name if name is not None else datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.collector = Collector(
-            pipeline_name=self.name,
-            pool_size=workers,
-            row_limit=row_limit,
+        self.evaluator = Evaluator.remote(row_limit=row_limit)  # type: ignore
+        self.datastore = DataStore.remote(
+            dataset=dataset,  # type: ignore
         )
-        self.resolver = Resolver(
-            dataset=dataset,
-        )
+        self.max_tasks = max_tasks
+        self.refs = []
 
     def fetch_record(
         self,
         task_id,
     ):
-        record = self.resolver.resolve(
-            task_id=task_id,
-        )
+        record = ray.get(self.datastore.resolve.remote(task_id))
 
         return record
 
@@ -46,9 +42,18 @@ class Pipeline:
         self,
         metric: Metric,
     ):
-        self.collector.submit(
+        while len(self.refs) >= self.max_tasks:
+            _, self.refs = ray.wait(
+                self.refs,
+                num_returns=1,
+                timeout=None,
+            )
+
+        ref = self.evaluator.add_record.remote(
             metric=metric,
         )
+
+        self.refs.append(ref)
 
     def _exponential_backoff(
         self,
@@ -100,11 +105,8 @@ class Pipeline:
             max_pending_percent=max_pending_percent,
         )
 
-        results = self.collector.dump(
-            reuse=reuse_pool,
+        results = self.evaluator.compaction.remote(
             clean_dir=clean_dir,
         )
 
-        ray.shutdown()
-
-        return results
+        return ray.get(results)
