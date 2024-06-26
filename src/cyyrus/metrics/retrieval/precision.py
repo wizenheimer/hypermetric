@@ -21,12 +21,10 @@ class Precision(Metric):
 
     def evaluate(
         self,
-        task_id: str,
     ):
         _ = self.get_param("retrieved_context")
         _ = self.get_param("ground_truth_context")
 
         return self.serialize(
             result="ok",
-            task_id=task_id,
         )
